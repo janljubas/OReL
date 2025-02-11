@@ -3,8 +3,11 @@ import matplotlib.pyplot as plt
 
 def run_simulation(delta, T, use_modified):
     """
-    We simulate the UCB1 algorithm (modified or the origial one) and output the regret over time
-    The function inputs are delta (the subomptimality gap) and the T (time horizon)
+    We simulate the UCB1 algorithm (modified or the origial one) and output the regret over time.
+    The function inputs:
+         delta -> the subomptimality gap 
+         `T` -> time horizon
+         `use_modified` -> indicator for which algorithm version
     """
 
     mu = [0.5 + 0.5 * delta, 0.5 - 0.5 * delta]
