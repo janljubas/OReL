@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     # Parameters as defined in the Exercises
     T = 100000
-    deltas = [0.25, 0.125, 0.0625]
+    deltas = [0.8, 0.25, 0.125, 0.0625, 0.0001]
     num_runs = 20
 
 

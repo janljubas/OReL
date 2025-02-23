@@ -16,19 +16,21 @@ class riverswim():
 		self.P = np.zeros((nS, 2, nS))
 		self.support = [[[] for _ in range(self.nA)] for _ in range(self.nS)]
 		for s in range(nS):
-			if s == 0:
+			if s == 0:	# left-most state
 				self.P[s, 0, s] = 1
 				self.P[s, 1, s] = 0.6
 				self.P[s, 1, s + 1] = 0.4
 				self.support[s][0] += [0]
 				self.support[s][1] += [0, 1]
-			elif s == nS - 1:
+
+			elif s == nS - 1:	# right-most state
 				self.P[s, 0, s - 1] = 1
 				self.P[s, 1, s] = 0.6
 				self.P[s, 1, s - 1] = 0.4
 				self.support[s][0] += [s - 1]
 				self.support[s][1] += [s - 1, s]
-			else:
+
+			else:	# all the "middle" states
 				self.P[s, 0, s - 1] = 1
 				self.P[s, 1, s] = 0.55
 				self.P[s, 1, s + 1] = 0.4
