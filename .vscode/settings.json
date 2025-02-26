@@ -1,0 +1,11 @@
+{
+    "python.analysis.extraPaths": [
+        "./HA1",
+        "./HA2",
+        "./HA3",
+        "./HA4",
+        "./HA5",
+        "./HA6"
+
+    ]
+}
