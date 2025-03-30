@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from HA7_gridworld import Four_Room_Teleportation, display_4room_policy
 
-def value_iteration_average_reward(P, R, epsilon=1e-6, max_iter=10000):
+def value_iteration_average_reward(P, R, epsilon=1e-10, max_iter=10000):
     """
     Perform Value Iteration for Average-Reward MDP
     
@@ -20,38 +20,34 @@ def value_iteration_average_reward(P, R, epsilon=1e-6, max_iter=10000):
     n_states = P.shape[0]
     n_actions = P.shape[1]
     
-    # Initialize bias and gain
+    # Init bias and gain
     b = np.zeros(n_states)
     g = 0
     
     for iteration in range(max_iter):
-        # Store previous values for convergence check
         prev_b = b.copy()
         prev_g = g
         
-        # Compute Q-values
+        # compute Q-values
         Q = np.zeros((n_states, n_actions))
         for s in range(n_states):
             for a in range(n_actions):
-                # Compute expected value considering current bias
+                # compute expected value considering current bias
                 Q[s, a] = R[s, a] - g + np.sum(P[s, a] * b)
         
-        # Update bias and gain
-        # Maximize Q-values while maintaining current gain
         for s in range(n_states):
             b[s] = np.max(Q[s])
         
-        # Center the bias function
+        # "centering" the bias function
         b -= np.mean(b)
         
-        # Check for convergence
         g_diff = np.abs(g - np.mean(np.max(Q, axis=1)))
         b_diff = np.max(np.abs(b - prev_b))
         
-        # Update gain
+        # update gain
         g = np.mean(np.max(Q, axis=1))
         
-        # Convergence criteria
+        # check convergence criteria
         if g_diff < epsilon and b_diff < epsilon:
             break
     
@@ -94,3 +90,5 @@ def main():
 
 if __name__ == "__main__":
     results = main()
+
+    print(results['optimal_gain'] + results['bias_span'])
