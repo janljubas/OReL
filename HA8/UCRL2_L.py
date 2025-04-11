@@ -4,7 +4,9 @@ import numpy as np
 import copy as cp
 import pylab as pl
 
+from datetime import datetime
 
+current_time = datetime.now().strftime("%H%M")
 
 ####################################################################################################################################################
 ####################################################################################################################################################
@@ -76,7 +78,18 @@ class riverswim():
 
 
 
+class ErgodicRiverSwim(riverswim):
+    def __init__(self, nS):
+        super().__init__(nS)
+        # Make leftmost state non-absorbing
+        self.P[0,0,0] = 0.4
+        self.P[0,0,1] = 0.6
+        self.support[0][0] += [0, 1]    # override support for (s=0, a=0)
 
+        # Make rightmost state non-absorbing
+        self.P[nS-1,1,nS-1] = 0.4
+        self.P[nS-1,1,nS-2] = 0.6
+        self.support[nS-1][1] += [nS-2, nS-1]
 
 
 
@@ -167,6 +180,7 @@ class UCRL2_L:
 		self.delta = delta
 		self.epsilon = epsilon
 		self.s = None
+		self.episode_count = 0
 
 		# The "counter" variables:
 		self.Nk = np.zeros((self.nS, self.nA), dtype=int) # Number of occurences of (s, a) at the end of the last episode.
@@ -294,6 +308,8 @@ class UCRL2_L:
 		self.s = init
 		self.last_action = -1
 
+		self.episode_count = 0	# also reset the episode count!
+
 		# Start the first episode.
 		self.new_episode()
 
@@ -307,13 +323,14 @@ class UCRL2_L:
 		if self.vk[state, action] > max([1, self.Nk[state, action]]): # Stoppping criterion
 			self.new_episode()
 			action  = self.policy[state]
+			self.episode_count += 1
 		
 		# Update the variables:
 		self.vk[state, action] += 1
 		self.s = state
 		self.last_action = action
 
-		return action, self.policy
+		return action, self.policy, self.episode_count
 
 
 
@@ -342,7 +359,7 @@ class UCRL2_L:
 
 
 # Plotting function.
-def plot(data, names, y_label = "Regret", exp_name = "cumulativeRegret"):
+def plot(data, names, y_label = "Regret", exp_name = "cumulativeRegret", delta=0.0125, gstar=None):
 	timeHorizon = len(data[0][0])
 	colors= ['black', 'blue', 'purple','cyan','yellow', 'orange', 'red']
 	nbFigure = pl.gcf().number+1
@@ -370,22 +387,27 @@ def plot(data, names, y_label = "Regret", exp_name = "cumulativeRegret"):
 	#pl.yscale('log')
 	#pl.ylim(1)
 
+
+	if gstar is not None:
+		pl.axhline(y=gstar, color='green', linestyle='--', label='$g^*$')
+		pl.legend()
+	
 	# Save the plot.
 	name = ""
 	for n  in names:
 		name += n + "_"
-	pl.savefig("Figure_" + name + exp_name + '.pdf')
+	pl.savefig("Figure_" + name + exp_name + current_time + f"delta={delta}" + '.pdf')
 
 # Test function, plotting the cumulative regret.
 def run():
 	# Set the environment:
 	nS = 6
-	env = riverswim(nS)
+	env = ErgodicRiverSwim(nS)
 	epsilon = 0.01
-	delta = 0.05
+	delta = 0.0125
 
 	# Set the time horizon:
-	T = 2*10**4
+	T = 35*10**4	
 	nb_Replicates = 100
 
 	# Set the learning agents:
@@ -400,6 +422,7 @@ def run():
 
 	# Run the experiments:
 	print("Running experiments...")
+	episode_counts_list = []
 	for i in range(nb_Replicates):
 		# Running an instance of UCRL2-L:
 		env.reset()
@@ -407,14 +430,32 @@ def run():
 		reward = 0
 		new_s = env.s
 		for t in range(T):
-			action, _ = UCRL2L.play(new_s, reward)
+			action, _, _= UCRL2L.play(new_s, reward)
 			new_s, reward = env.step(action)
 			cumregret_UCRL2L[i].append(cumregret_UCRL2L[i][-1]+ gstar - reward)
 		print("|" + "#"*int(i/((nb_Replicates - 1) / 33)) + " "*(33 - int(i/((nb_Replicates - 1) / 33))) + "|", end="\r") # Making a rudimentary progress bar!
-	
+
+		episode_counts_list.append(UCRL2L.episode_count)
+		
+	avg_episode_counts = np.mean(episode_counts_list)
+	print(f"\nAverage episode count: {avg_episode_counts}")
+
+
+	##########
+	empirical_gain_data = []
+	for i in range(nb_Replicates):
+		eg = []
+		for t in range(1, T+1):
+			eg.append(gstar - (cumregret_UCRL2L[i][t-1] / t))
+		empirical_gain_data.append(eg)
+
 	# Plot and finish.
 	print("\nPlotting...")
-	plot([cumregret_UCRL2L], ["UCRL2_L"], y_label = "Cumulative Regret", exp_name = "cumulative_regret")
+
+	plot([cumregret_UCRL2L], ["UCRL2"], y_label = "Cumulative Regret", exp_name = "cumulative_regret", delta=delta)
+
+	plot([empirical_gain_data], ["UCRL2_L_empirical_gain"], y_label = "Empirical Gain", exp_name = "empirical_gain", delta=delta, gstar=gstar)
+
 	print('Done!')
 
 
